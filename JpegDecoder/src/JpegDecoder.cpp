@@ -1,13 +1,12 @@
 
 #include "JpegDecoder.h"
 #include "Config.h"
-#include <map>
-#include <string>
+#include "Stl.h"
 #include <stdio.h>
 #include <cmath>
 
 using namespace JpegCodec;
-using namespace std;
+using namespace tinyStl;
 
 //------------------  Public Field   -----------------------------------------------------//
 
@@ -146,15 +145,17 @@ int JpegDecoder::MarkIndex(uint8_t mark)
 /* @brief 从二进制数据流中查找一个有效的编码值
  * @table:    用于解码的哈夫曼表
  */
-int JpegDecoder::FindKeyValue(std::map<std::string, uint8_t> &table)
+int JpegDecoder::FindKeyValue(tinyMap &table)
 {
-    string keyStr = "";
-    while (table.find(keyStr) == table.end())
+    int key = 0;
+    int keyLength = 0;
+    while (table.find(key, keyLength) == table.end())
     {
-        keyStr += (NextBit() + '0'); // char of 0 or 1
+        key = (key << 1) + NextBit(); // 1 or 0
+        keyLength++;
     }
-
-    return table[keyStr];
+    //printf("%X\n", key);
+    return table[key];
 }
 
 /* @brief 将一个 MacroBlock 填充到 YCbCr 缓冲区
@@ -210,37 +211,33 @@ void JpegDecoder::ReadImageSize()
  * @base:  从DHT_Segment 的表头开始，到表类型字段后一个字节的偏移量
  * @table: 要构建的哈夫曼表
  */
-void JpegDecoder::ReBuildTable(int base, map<string, uint8_t> &table)
+void JpegDecoder::ReBuildTable(int base, tinyMap &table)
 {
     int offset = 16;  // offset
-    string keyStr = "";
-    for (int i = 0; i < 16; i++) // length of key (i.e. i = 2 means key = 000 , 001 , 010 , 011 or ...)
-    {
-        int cnt = DHT_Segment[base + i]; // number of key, which length is (i+1)
+	int key = 0x0;
+	int keyLength = 0;
+	for (int i = 0; i < 16; i++) // length of key (i.e. i = 2 means key = 000 , 001 , 010 , 011 or ...)
+	{
+		int cnt = DHT_Segment[base + i]; // number of key, which length is (i+1)
 
-        /* alignment */
-        for (int k = keyStr.length(); k <= i; k++)
+		/* alignment */
+		if (keyLength <= i)
         {
-            keyStr += "0";
+            key <<= (i - keyLength + 1);
+            keyLength = i + 1;
         }
 
-        while (cnt > 0)
-        {
-            /* value of key */
-            table.insert(pair<string, uint8_t>(keyStr, DHT_Segment[base + offset]));
-            offset++;
+		while (cnt > 0)
+		{
+			/* value of key */
+			table.insert(key, keyLength, DHT_Segment[base + offset]);
+			offset++;
 
-            /* increment */
-            int carry = 1; //进位
-            for (int k = keyStr.length() - 1; k >= 0; k--)
-            {
-                int tmpVal = (keyStr[k] + carry - '0'); //计算进位
-                carry = tmpVal / 2;
-                keyStr[k] = tmpVal % 2 + '0'; //计算后当前位结果
-            }
-            cnt = cnt - 1;
-        }
-    }
+			/* increment */
+			key++;
+			cnt = cnt - 1;
+		}
+	}
 }
 
 /* 构建 DC AC 哈夫曼表 */
@@ -266,7 +263,7 @@ void JpegDecoder::ToStartOfData()
  * @actable: AC哈夫曼表
  * @dc:      前一个block的 DC 值
  */
-void JpegDecoder::DecoderBlock(int32_ptr out, map<string, uint8_t> &dcTable, map<string, uint8_t> &acTable, int &dc)
+void JpegDecoder::DecoderBlock(int32_ptr out, tinyMap &dcTable, tinyMap &acTable, int &dc)
 {
     // reset matrix
     for (int i = 0; i < 64; i++) out[i] = 0x0;

@@ -3,7 +3,7 @@
 #define JPEGDECODER__H
 
 #include "Config.h"
-#include <map>
+#include "Stl.h"
 #include <string>
 
 namespace JpegCodec
@@ -63,7 +63,7 @@ namespace JpegCodec
         /* @brief 从二进制数据流中查找一个有效的编码值
          * @table:    用于解码的哈夫曼表
          */
-        int FindKeyValue(std::map<std::string, uint8_t> &table);
+        int FindKeyValue(tinyStl::tinyMap &table);
 
         /* @brief 将一个 MacroBlock 填充到 YCbCr 缓冲区
          */
@@ -73,7 +73,7 @@ namespace JpegCodec
          * @base:  从DHT_Segment 的表头开始，到表类型字段后一个字节的偏移量
          * @table: 要构建的哈夫曼表
          */
-        void ReBuildTable(int base, std::map<std::string, uint8_t> &table);
+        void ReBuildTable(int base, tinyStl::tinyMap &table);
 
 		//------------------  1.解码准备工作   -------------------------------------
 
@@ -98,7 +98,7 @@ namespace JpegCodec
          * @actable: AC哈夫曼表
          * @dc:      前一个block的 DC 值
          */
-        void DecoderBlock(int32_ptr out, std::map<std::string, uint8_t> &dcTable, std::map<std::string, uint8_t> &acTable, int &dc);
+        void DecoderBlock(int32_ptr out, tinyStl::tinyMap &dcTable, tinyStl::tinyMap &acTable, int &dc);
 
 
 		//------------------  3.反量化   -------------------------------------------
@@ -159,8 +159,7 @@ namespace JpegCodec
 		int            yDC, cbDC, crDC;
 
 		/* huffman table */
-		std::map<std::string, uint8_t> DC[2];
-        std::map<std::string, uint8_t> AC[2];
+		tinyStl::tinyMap DC[2], AC[2];
 	};
 
 }
